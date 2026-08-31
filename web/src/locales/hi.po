@@ -16511,6 +16511,7 @@ msgstr ""
 msgid "{0} {1} {2} from {3} {4}"
 msgstr ""
 
+#: src/lib/components/custom/VM/Create/Advanced.svelte
 #: src/lib/components/custom/VM/Options/BootRom.svelte
 #: src/routes/[node]/vm/[rid]/options/+page.svelte
 msgid "U-Boot (Default)"

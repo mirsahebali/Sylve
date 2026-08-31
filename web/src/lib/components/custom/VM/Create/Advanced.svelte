@@ -21,6 +21,8 @@
 		isRequestCancellation,
 		updateCache
 	} from '$lib/utils/http';
+	import { getCPUInfo } from '$lib/api/info/cpu';
+	import type { CPUInfo } from '$lib/types/info/cpu';
 
 	interface Props {
 		node: string;
@@ -35,7 +37,7 @@
 		bootOrder: number;
 		tpmEmulation: boolean;
 		timeOffset: 'utc' | 'localtime';
-		bootRom: 'uefi' | 'none';
+		bootRom: 'uboot' | 'uefi' | 'none';
 		cloudInit: {
 			enabled: boolean;
 			data: string;
@@ -80,11 +82,34 @@
 		{ label: 'UTC', value: 'utc' },
 		{ label: 'Local Time', value: 'localtime' }
 	];
-	const bootRoms = [
-		{ label: 'UEFI (Default)', value: 'uefi' },
-		{ label: 'None', value: 'none' }
-	];
 
+	// svelte-ignore state_referenced_locally
+	let cpuInfo = resource(
+		() => 'cpu-info',
+		async (key, prevKey, { signal }) => {
+			const result = await getCPUInfo('current', { signal });
+			updateCache('cpu-info', result);
+			return result;
+		},
+		{
+			initialValue: { architecture: 'amd64' } as CPUInfo
+		}
+	);
+
+	function isArm(): boolean {
+		return cpuInfo.current.architecture.includes('arm');
+	}
+
+	function getBootRoms() {
+		return [
+			isArm()
+				? { label: 'U-Boot (Default)', value: 'uboot' }
+				: { label: 'UEFI (Default)', value: 'uefi' },
+			{ label: 'None', value: 'none' }
+		];
+	}
+
+	const bootRoms = getBootRoms();
 	let resolutionOpen = $state(false);
 
 	watch(

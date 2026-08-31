@@ -44,16 +44,35 @@
 	import { isDemoMode } from '$lib/demo/runtime';
 	import { demoVMProfiles, getDemoVMProfile, type DemoVMProfile } from '$lib/demo/vm-profiles';
 	import DemoProfiles from '$lib/components/custom/VM/Create/DemoProfiles.svelte';
+	import { getCPUInfo } from '$lib/api/info/cpu';
+	import type { CPUInfo } from '$lib/types/info/cpu';
 
 	interface Props {
 		open: boolean;
 		minimize: boolean;
 	}
 
-	type CreateBootRom = Exclude<VMBootRom, 'uboot'>;
+	type CreateBootRom = VMBootRom;
 	type CreateVMFormData = Omit<CreateData, 'advanced'> & {
 		advanced: Omit<CreateData['advanced'], 'bootRom'> & { bootRom: CreateBootRom };
 	};
+
+	// svelte-ignore state_referenced_locally
+	let cpuInfo = resource(
+		() => 'cpu-info',
+		async (key, prevKey, { signal }) => {
+			const result = await getCPUInfo('current', { signal });
+			updateCache('cpu-info', result);
+			return result;
+		},
+		{
+			initialValue: { architecture: 'amd64' } as CPUInfo
+		}
+	);
+
+	function isArm(): boolean {
+		return cpuInfo.current.architecture.includes('arm');
+	}
 
 	let { open = $bindable(), minimize = $bindable() }: Props = $props();
 
@@ -97,7 +116,7 @@
 			bootOrder: 0,
 			tpmEmulation: false,
 			timeOffset: 'utc' as 'utc' | 'localtime',
-			bootRom: isDemoMode ? 'none' : 'uefi',
+			bootRom: isDemoMode ? 'none' : isArm() ? 'uboot' : 'uefi',
 			cloudInit: {
 				enabled: false,
 				data: '',
